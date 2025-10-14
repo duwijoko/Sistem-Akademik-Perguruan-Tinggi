@@ -1,0 +1,63 @@
+Prompt yang dijalankan dan akan di upload 
+1. Prompt Class Diagram (Gemini)
+
+Anda adalah arsitek sistem berpengalaman. Buat Class diagram UML untu sistem akademik perguruan tinggi dengan komponen berikut :
+1. PMB Proses pendaftaran dan seleksi calon mahasiswa
+2. KRS (Kartu Rencana Studi) Fitur bagi mahasiswa untuk memilih mata kuliah di setiap semester.
+3. User sebagai base class (Mahasiswa, Dosen, Admin, Calon Mahasiswa)
+4. Course degnan atribut kode, nama, SKS, prasyarat
+5. Enrollment yanng hubungkan Mahasiswa dan Course
+6. Schedule dengan hari, jam, ruangan
+7. Grade Untuk Nilai mahasiswa. 
+
+Terapkan prinsip SOLID. dan gunakan Composition untuk relasi kuat dan aggregation untuk relasi lemah, output dalam format Mermaid.
+
+Validasi Diagram 
+(Uload Image Diagram di Prompt)
+Jadikan file terlampir sebagai satu-satunya sumber untuk dilakukan pengecekcekan apakah inheritance masuk akal
+Pastikan tidak ada circular dependency pada diagram tersebut,
+Verifikasi kardinalitas relasi (1-to-many, many-to-many) pastikan dengan baik.
+
+
+2. Prompt Use Case Diagram
+
+"sebagai arsitek sistem yang berpengalaman, Buatkan use case diagram untuk sistem akademik perguruan tinggi dengan aktor: Mahasiswa, Dosen, Admin Akademik.
+Use case utama: pendaftaran KRS, approve KRS, input nilai, generate transkrip. Tandai relasi include/extend jika ada." yang dapat di baca oleh https://editor.plantuml.com/
+
+Compare
+(Upload File)
+Sebagai arsitek sistem yang berpengalaman, tolong compare use case diagram tersebut dengan standart yang umum digunakan dalam dunia akademik.
+berikan penjelasan yang jelas dan detail jika harus ada yang dirubah dari diagram tersebut,
+dan buatkan juga code diagram tersebut yang kompatibel dengan https://editor.plantuml.com/
+
+Refactor
+(upload File UseCase Diagram)
+Sebagai arsitek sistem yang berpengalaman, lakukan Refactor class yang terlalu "god object" dari  use case diagram tersebut bertujuan menjadi bagian yang lebih spesifik, kode menjadi lebih bersih, modular dan mudah dikelola.
+berikan penjelasan yang jelas dan detail jika harus ada yang dirubah dari diagram tersebut,
+dan buatkan juga code diagram tersebut yang kompatibel dengan https://editor.plantuml.com/
+
+
+3. Prompt Sequeance Diagram
+Sebagai arsitek sistem yang berpengalaman dan detail, Buat sequence diagram untuk proses validasi KRS:
+Mahasiswa submit KRS
+Sistem cek prasyarat mata kuliah
+Sistem cek batas SKS (max 24)
+Sistem cek jadwal bentrok
+Jika lulus validasi, status KRS jadi 'Pending Approval'
+masukan juga error handling pada diagram.
+dan masukan semua kegiatan kedalam database (Update)
+Notifikasi dikirim ke Dosen Pengampu Gunakan format PlantUML yang dapat dideteksi di https://editor.plantuml.com/.
+
+Compare Sequence diagram 
+(Upload File Diagram)
+Sebagai arsitek sistem yang berpengalaman, tolong compare sequence diagram tersebut dengan standart yang umum digunakan dalam dunia akademik.
+berikan penjelasan yang jelas dan detail jika harus ada yang dirubah dari diagram tersebut,
+dan buatkan juga code diagram tersebut yang kompatibel dengan https://editor.plantuml.com/
+
+Refactor
+(Upload File Diagram)
+Sebagai arsitek sistem yang berpengalaman, lakukan Refactor class yang terlalu "god object" dari  sequence diagram tersebut bertujuan menjadi bagian yang lebih spesifik, kode menjadi lebih bersih, modular dan mudah dikelola.
+berikan penjelasan yang jelas dan detail jika harus ada yang dirubah dari diagram tersebut,
+dan buatkan juga code diagram tersebut yang kompatibel dengan https://editor.plantuml.com/
+
+
