@@ -1,0 +1,214 @@
+@startuml
+title Sequence Diagram - Penerimaan Mahasiswa Baru (PMB)
+autonumber
+
+' ============ ACTORS & SYSTEMS ============
+actor "Calon Mahasiswa" as CalonMhs
+participant "PMB Web Interface" as WebUI
+participant "PMB Views" as PMBViews
+participant "PMB Forms" as PMBForms
+participant "PMB Models" as PMBModels
+participant "User Management" as UserMgmt
+participant "NIM Generator" as NIMGen
+participant "Email System" as EmailSys
+actor "Admin Akademik" as Admin
+database "Database" as DB
+
+' ============ FASE 1: REGISTRASI ============
+group Fase 1: Registrasi Calon Mahasiswa
+    CalonMhs -> WebUI: Buka halaman pendaftaran\n(/pmb/register/)
+    WebUI -> PMBViews: pmb_register(request)
+    PMBViews -> PMBModels: PMBPeriode.objects.get(is_active=True)
+    PMBModels -> DB: Query periode aktif
+    DB --> PMBModels: periode_aktif
+    PMBModels --> PMBViews: periode_aktif
+    
+    alt Periode Aktif dan Terbuka
+        PMBViews -> PMBForms: CalonMahasiswaForm()
+        PMBForms --> PMBViews: form
+        PMBViews --> WebUI: render register.html + form
+        WebUI --> CalonMhs: Tampilkan form pendaftaran
+        
+        CalonMhs -> WebUI: Isi form dan submit data
+        WebUI -> PMBViews: POST /pmb/register/
+        PMBViews -> PMBForms: CalonMahasiswaForm(request.POST)
+        PMBForms -> PMBForms: is_valid()
+        
+        alt Form Valid
+            PMBViews -> DB: Cek existing_user, existing_pmb
+            DB --> PMBViews: existing_data
+            
+            alt Data Tidak Exist (Fresh Registration)
+                PMBViews -> DB: BEGIN TRANSACTION
+                PMBViews -> PMBModels: CalonMahasiswaBaru.objects.create()
+                PMBModels -> DB: INSERT calon_mahasiswa_baru
+                DB --> PMBModels: calon_mahasiswa (status='pending')
+                
+                PMBViews -> UserMgmt: User.objects.create_user()
+                UserMgmt -> DB: INSERT user (role='calon_mahasiswa')
+                DB --> UserMgmt: user
+                
+                PMBViews -> UserMgmt: CalonMahasiswa.objects.create()
+                UserMgmt -> DB: INSERT calon_mahasiswa_profile
+                DB --> UserMgmt: profile (registration_number)
+                
+                PMBViews -> DB: COMMIT TRANSACTION
+                PMBViews -> WebUI: redirect('pmb:registration_success')
+                WebUI --> CalonMhs: Halaman sukses pendaftaran
+                
+            else Data Sudah Ada (Duplicate)
+                PMBViews --> WebUI: Pesan error duplikasi
+                WebUI --> CalonMhs: Tampilkan pesan error
+            end
+            
+        else Form Invalid
+            PMBViews --> WebUI: render form dengan error
+            WebUI --> CalonMhs: Tampilkan kesalahan form
+        end
+        
+    else Periode Tidak Aktif
+        PMBViews --> WebUI: Pesan periode tutup
+        WebUI --> CalonMhs: Tampilkan pesan periode tutup
+    end
+end
+
+' ============ FASE 2: REVIEW ADMIN ============
+group Fase 2: Review dan Approval oleh Admin
+    Admin -> WebUI: Login sebagai admin
+    WebUI -> Admin: Dashboard admin
+    
+    Admin -> WebUI: Buka daftar PMB\n(/pmb/)
+    WebUI -> PMBViews: pmb_list(request)
+    PMBViews -> PMBModels: CalonMahasiswaBaru.objects.filter()
+    PMBModels -> DB: Query calon mahasiswa
+    DB --> PMBModels: calon_mahasiswa_list
+    PMBModels --> PMBViews: queryset
+    PMBViews --> WebUI: render pmb_list.html
+    WebUI --> Admin: Tampilkan daftar calon mahasiswa
+    
+    Admin -> WebUI: Klik detail calon mahasiswa
+    WebUI -> PMBViews: pmb_candidate_detail(calon_id)
+    PMBViews -> PMBModels: CalonMahasiswaBaru.objects.get(id=calon_id)
+    PMBModels -> DB: Query detail calon
+    DB --> PMBModels: calon_detail
+    PMBModels --> PMBViews: calon
+    PMBViews --> WebUI: JSON response detail
+    WebUI --> Admin: Modal detail calon mahasiswa
+end
+
+' ============ FASE 3: APPROVAL PROCESS ============
+group Fase 3: Proses Approval dan Generate NIM
+    Admin -> WebUI: Klik tombol "Terima"
+    WebUI -> PMBViews: pmb_approve_candidate(calon_id)
+    PMBViews -> PMBModels: CalonMahasiswaBaru.objects.get(id=calon_id)
+    PMBModels -> DB: Query calon mahasiswa
+    DB --> PMBModels: calon
+    
+    alt Status = 'pending'
+        PMBViews -> DB: BEGIN TRANSACTION
+        
+        ' Generate NIM
+        PMBViews -> NIMGen: NIMGenerator()
+        NIMGen -> NIMGen: generate_nim(program_studi)
+        NIMGen -> DB: Query existing NIMs untuk program studi
+        DB --> NIMGen: existing_nims
+        NIMGen -> NIMGen: Generate unique NIM
+        NIMGen --> PMBViews: nim
+        
+        ' Create Mahasiswa record
+        PMBViews -> UserMgmt: Mahasiswa.objects.create()
+        UserMgmt -> DB: INSERT mahasiswa (nim, status='aktif')
+        DB --> UserMgmt: mahasiswa_record
+        
+        ' Update status calon mahasiswa
+        PMBViews -> PMBModels: calon.status = 'approved'
+        PMBModels -> DB: UPDATE calon_mahasiswa_baru SET status='approved'
+        DB --> PMBModels: updated
+        
+        PMBViews -> DB: COMMIT TRANSACTION
+        
+        ' Send notification (optional)
+        PMBViews -> EmailSys: Send approval email
+        EmailSys --> CalonMhs: Email penerimaan + NIM
+        
+        PMBViews --> WebUI: JSON success response
+        WebUI --> Admin: Pesan sukses + NIM
+        
+    else Status sudah diproses
+        PMBViews --> WebUI: Error - sudah diproses
+        WebUI --> Admin: Pesan error
+    end
+end
+
+' ============ FASE 4: REJECTION PROCESS ============
+group Fase 4: Proses Penolakan (Alternative Flow)
+    Admin -> WebUI: Klik tombol "Tolak"
+    WebUI -> PMBViews: pmb_reject_candidate(calon_id)
+    PMBViews -> PMBModels: CalonMahasiswaBaru.objects.get(id=calon_id)
+    PMBModels -> DB: Query calon mahasiswa
+    DB --> PMBModels: calon
+    
+    alt Status = 'pending'
+        PMBViews -> PMBModels: calon.status = 'rejected'
+        PMBModels -> DB: UPDATE calon_mahasiswa_baru SET status='rejected'
+        DB --> PMBModels: updated
+        
+        ' Send notification (optional)
+        PMBViews -> EmailSys: Send rejection email
+        EmailSys --> CalonMhs: Email penolakan + alasan
+        
+        PMBViews --> WebUI: JSON success response
+        WebUI --> Admin: Pesan sukses penolakan
+        
+    else Status sudah diproses
+        PMBViews --> WebUI: Error - sudah diproses
+        WebUI --> Admin: Pesan error
+    end
+end
+
+' ============ FASE 5: POST-APPROVAL ============
+group Fase 5: Setelah Diterima
+    note over CalonMhs, DB
+        Setelah approved, calon mahasiswa menjadi mahasiswa aktif
+        dengan NIM yang sudah di-generate dan dapat login
+        menggunakan akun yang sudah dibuat saat registrasi
+    end note
+    
+    CalonMhs -> WebUI: Login dengan akun calon mahasiswa
+    WebUI -> UserMgmt: Authenticate user
+    UserMgmt -> DB: Query user credentials
+    DB --> UserMgmt: user_authenticated
+    UserMgmt --> WebUI: Login success
+    WebUI --> CalonMhs: Dashboard mahasiswa (jika sudah approved)
+end
+
+note right of NIMGen
+    NIM Generator menggunakan format:
+    [Tahun][Kode Program Studi][Nomor Urut]
+    Contoh: 2024001001
+    
+    Thread-safe dengan menggunakan
+    database locks untuk mencegah
+    duplikasi NIM
+end note
+
+note right of PMBModels
+    Status Flow:
+    'pending' → 'approved' → mahasiswa aktif
+    'pending' → 'rejected' → tidak dapat melanjutkan
+    
+    Models utama:
+    - CalonMahasiswaBaru (data pendaftar)
+    - PMBPeriode (periode pendaftaran)
+    - ProgramStudi (pilihan program)
+end note
+
+note right of EmailSys
+    Email notifications (optional):
+    - Konfirmasi pendaftaran
+    - Pemberitahuan approval + NIM
+    - Pemberitahuan rejection + alasan
+    - Instruksi daftar ulang
+end note
+
+@enduml
