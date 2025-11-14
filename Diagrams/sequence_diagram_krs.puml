@@ -1,0 +1,296 @@
+@startuml
+title Sequence Diagram - Kartu Rencana Studi (KRS)
+autonumber
+
+' ============ ACTORS & SYSTEMS ============
+actor "Mahasiswa" as Mhs
+participant "Academic Web Interface" as WebUI
+participant "KRS Views" as KRSViews
+participant "KRS Models" as KRSModels
+participant "Course Models" as CourseModels
+participant "KRS Validation Service" as KRSValidation
+participant "Enrollment System" as EnrollmentSys
+actor "Admin Akademik" as Admin
+database "Database" as DB
+
+' ============ FASE 1: MAHASISWA LOGIN & AKSES KRS ============
+group Fase 1: Akses Sistem KRS
+    Mhs -> WebUI: Login sebagai mahasiswa
+    WebUI -> Mhs: Dashboard mahasiswa
+    
+    Mhs -> WebUI: Buka daftar KRS\n(/academic/krs/)
+    WebUI -> KRSViews: krs_list(request)
+    KRSViews -> KRSViews: Check user.role == 'mahasiswa'
+    KRSViews -> KRSModels: KRS.objects.filter(mahasiswa=mahasiswa)
+    KRSModels -> DB: Query KRS mahasiswa
+    DB --> KRSModels: krs_list
+    KRSModels --> KRSViews: queryset
+    KRSViews --> WebUI: render krs_list.html
+    WebUI --> Mhs: Tampilkan daftar KRS mahasiswa
+end
+
+' ============ FASE 2: MEMBUAT KRS BARU ============
+group Fase 2: Membuat KRS Baru
+    Mhs -> WebUI: Klik "Buat KRS Baru"
+    WebUI -> KRSViews: krs_create(request)
+    KRSViews -> KRSViews: Check user.role == 'mahasiswa'
+    KRSViews -> DB: Get mahasiswa profile
+    DB --> KRSViews: mahasiswa
+    
+    alt GET Request (Form Display)
+        KRSViews -> CourseModels: Course.objects.filter(is_active=True)
+        CourseModels -> DB: Query available courses
+        DB --> CourseModels: available_courses
+        CourseModels --> KRSViews: courses
+        KRSViews --> WebUI: render krs_create.html + courses
+        WebUI --> Mhs: Tampilkan form KRS baru
+        
+    else POST Request (Create KRS)
+        KRSViews -> DB: Check existing KRS for semester
+        DB --> KRSViews: existing_krs
+        
+        alt KRS Belum Ada untuk Semester
+            KRSViews -> KRSModels: KRS.objects.create()
+            KRSModels -> DB: INSERT new KRS (status='draft')
+            DB --> KRSModels: krs_created
+            KRSViews -> WebUI: redirect to krs_list
+            WebUI --> Mhs: "KRS berhasil dibuat"
+            
+        else KRS Sudah Ada
+            KRSViews --> WebUI: Error message
+            WebUI --> Mhs: "KRS untuk semester ini sudah ada"
+        end
+    end
+end
+
+' ============ FASE 3: MENGELOLA MATA KULIAH DALAM KRS ============
+group Fase 3: Menambah dan Menghapus Mata Kuliah
+    Mhs -> WebUI: Buka detail KRS
+    WebUI -> KRSViews: krs_detail(krs_id)
+    KRSViews -> KRSModels: KRS.objects.get(krs_id=krs_id)
+    KRSModels -> DB: Query KRS detail + courses
+    DB --> KRSModels: krs_with_courses
+    KRSModels --> KRSViews: krs
+    KRSViews --> WebUI: render krs_detail.html
+    WebUI --> Mhs: Tampilkan KRS dengan daftar mata kuliah
+    
+    ' Menambah Mata Kuliah
+    Mhs -> WebUI: Pilih mata kuliah + klik "Tambah"
+    WebUI -> KRSViews: krs_add_course(krs_id)
+    KRSViews -> KRSModels: KRS.objects.get(krs_id)
+    KRSModels -> DB: Query KRS
+    DB --> KRSModels: krs
+    KRSViews -> CourseModels: Course.objects.get(course_id)
+    CourseModels -> DB: Query course detail
+    DB --> CourseModels: course
+    
+    ' Validasi sebelum menambah
+    KRSViews -> KRSValidation: validate_prerequisites(mahasiswa, course)
+    KRSValidation -> DB: Check prerequisites completion
+    DB --> KRSValidation: prerequisites_met
+    
+    KRSViews -> KRSValidation: validate_sks_limit(krs)
+    KRSValidation -> KRSValidation: Check total_sks + course.sks <= max_sks
+    KRSValidation --> KRSViews: sks_valid
+    
+    KRSViews -> KRSValidation: validate_time_conflict(krs)
+    KRSValidation -> DB: Check schedule conflicts
+    DB --> KRSValidation: no_conflict
+    
+    alt Semua Validasi Berhasil
+        KRSViews -> KRSModels: krs.add_course(course)
+        KRSModels -> DB: INSERT into krs_courses
+        KRSModels -> KRSModels: calculate_total_sks()
+        KRSModels -> DB: UPDATE krs total_sks
+        DB --> KRSModels: updated
+        KRSViews --> WebUI: JSON success response
+        WebUI --> Mhs: "Mata kuliah berhasil ditambahkan"
+        
+    else Validasi Gagal
+        KRSViews --> WebUI: JSON error response
+        WebUI --> Mhs: Error message (prerequisite/SKS/conflict)
+    end
+    
+    ' Menghapus Mata Kuliah
+    Mhs -> WebUI: Klik "Hapus" pada mata kuliah
+    WebUI -> KRSViews: krs_remove_course(krs_id, course_id)
+    KRSViews -> KRSModels: krs.remove_course(course)
+    KRSModels -> DB: DELETE from krs_courses
+    KRSModels -> KRSModels: calculate_total_sks()
+    KRSModels -> DB: UPDATE krs total_sks
+    DB --> KRSModels: updated
+    KRSViews --> WebUI: JSON success response
+    WebUI --> Mhs: "Mata kuliah berhasil dihapus"
+end
+
+' ============ FASE 4: SUBMIT KRS UNTUK APPROVAL ============
+group Fase 4: Submit KRS untuk Persetujuan
+    Mhs -> WebUI: Klik "Submit KRS"
+    WebUI -> KRSViews: krs_submit(krs_id)
+    KRSViews -> KRSModels: KRS.objects.get(krs_id)
+    KRSModels -> DB: Query KRS
+    DB --> KRSModels: krs
+    
+    KRSViews -> KRSValidation: validate_complete_krs(krs)
+    KRSValidation -> KRSValidation: Validate minimum SKS, prerequisites, etc.
+    
+    alt KRS Valid untuk Submit
+        KRSViews -> KRSModels: krs.submit()
+        KRSModels -> KRSModels: krs.status = 'submitted'
+        KRSModels -> DB: UPDATE krs status
+        DB --> KRSModels: updated
+        KRSViews -> WebUI: redirect with success message
+        WebUI --> Mhs: "KRS berhasil diajukan"
+        
+    else KRS Tidak Valid
+        KRSViews -> WebUI: redirect with error message
+        WebUI --> Mhs: "KRS tidak memenuhi syarat"
+    end
+end
+
+' ============ FASE 5: ADMIN REVIEW & APPROVAL ============
+group Fase 5: Review dan Approval oleh Admin
+    Admin -> WebUI: Login sebagai admin
+    WebUI -> Admin: Dashboard admin
+    
+    Admin -> WebUI: Buka daftar persetujuan KRS\n(/academic/krs/approval/)
+    WebUI -> KRSViews: krs_approval(request)
+    KRSViews -> KRSViews: Check user.role == 'admin'
+    KRSViews -> KRSModels: KRS.objects.filter(status='submitted')
+    KRSModels -> DB: Query KRS yang perlu approval
+    DB --> KRSModels: submitted_krs_list
+    KRSModels --> KRSViews: queryset
+    KRSViews --> WebUI: render krs_approval.html
+    WebUI --> Admin: Tampilkan daftar KRS untuk approval
+    
+    Admin -> WebUI: Review KRS detail + klik "Approve"
+    WebUI -> KRSViews: krs_approve(krs_id)
+    KRSViews -> KRSModels: KRS.objects.get(krs_id)
+    KRSModels -> DB: Query KRS
+    DB --> KRSModels: krs
+    
+    alt Status = 'submitted'
+        KRSViews -> DB: BEGIN TRANSACTION
+        KRSViews -> KRSModels: krs.approve()
+        KRSModels -> KRSModels: krs.status = 'approved'
+        KRSModels -> KRSModels: krs.approved_date = now()
+        KRSModels -> DB: UPDATE krs status and approved_date
+        
+        ' Create Enrollments for approved courses  
+        KRSViews -> EnrollmentSys: Create enrollments for KRS courses
+        loop For each course in KRS
+            EnrollmentSys -> DB: INSERT/UPDATE enrollment
+            DB --> EnrollmentSys: enrollment_created
+        end
+        
+        KRSViews -> DB: COMMIT TRANSACTION
+        KRSViews --> WebUI: Success response
+        WebUI --> Admin: "KRS berhasil disetujui"
+        
+        ' Notification to student (optional)
+        note over WebUI, Mhs
+            Email/notification dapat dikirim
+            ke mahasiswa bahwa KRS telah disetujui
+        end note
+        
+    else Status sudah diproses
+        KRSViews --> WebUI: Error response
+        WebUI --> Admin: "KRS sudah diproses sebelumnya"
+    end
+end
+
+' ============ FASE 6: REJECTION PROCESS (Alternative Flow) ============
+group Fase 6: Penolakan KRS (Alternative Flow)
+    Admin -> WebUI: Klik "Reject" pada KRS
+    WebUI -> KRSViews: krs_reject(krs_id)
+    KRSViews -> KRSModels: KRS.objects.get(krs_id)
+    KRSModels -> DB: Query KRS
+    DB --> KRSModels: krs
+    
+    alt Status = 'submitted'
+        KRSViews -> KRSModels: krs.status = 'rejected'
+        KRSModels -> DB: UPDATE krs status
+        DB --> KRSModels: updated
+        KRSViews --> WebUI: Success response
+        WebUI --> Admin: "KRS berhasil ditolak"
+        
+        ' Notification to student
+        note over WebUI, Mhs
+            Mahasiswa dapat melihat status rejection
+            dan melakukan revisi KRS
+        end note
+        
+    else Status sudah diproses
+        KRSViews --> WebUI: Error response
+        WebUI --> Admin: "KRS sudah diproses sebelumnya"
+    end
+end
+
+' ============ FASE 7: POST-APPROVAL WORKFLOW ============
+group Fase 7: Setelah KRS Disetujui
+    note over Mhs, DB
+        Setelah KRS disetujui:
+        1. Status KRS = 'approved'
+        2. Enrollment records dibuat untuk setiap mata kuliah
+        3. Mahasiswa dapat melihat jadwal kuliah
+        4. Dosen dapat melihat daftar mahasiswa per mata kuliah
+        5. Sistem siap untuk input nilai di akhir semester
+    end note
+    
+    Mhs -> WebUI: Login dan cek status KRS
+    WebUI -> KRSViews: krs_list(request)
+    KRSViews -> KRSModels: KRS.objects.filter(mahasiswa=mahasiswa)
+    KRSModels -> DB: Query KRS mahasiswa
+    DB --> KRSModels: krs_list (status='approved')
+    KRSViews --> WebUI: render with approved KRS
+    WebUI --> Mhs: Tampilkan KRS yang sudah disetujui
+end
+
+note right of KRSValidation
+    KRS Validation Services:
+    - validate_prerequisites(): Cek prasyarat mata kuliah
+    - validate_sks_limit(): Cek batas SKS (max 24)
+    - validate_time_conflict(): Cek bentrok jadwal
+    - validate_max_students(): Cek kapasitas kelas
+    - validate_semester_eligibility(): Cek kelayakan semester
+    
+    Validasi berdasarkan IPK:
+    IPK >= 3.5: max 24 SKS
+    IPK 3.0-3.49: max 21 SKS
+    IPK < 3.0: max 18 SKS
+end note
+
+note right of KRSModels
+    KRS Status Flow:
+    'draft' → 'submitted' → 'approved'/'rejected'
+    
+    Key Methods:
+    - add_course(): Tambah mata kuliah + validasi
+    - remove_course(): Hapus mata kuliah
+    - calculate_total_sks(): Hitung total SKS
+    - validate(): Validasi kelengkapan KRS
+    - submit(): Submit untuk approval
+    - approve(): Setujui + create enrollments
+    
+    Business Rules:
+    - Unique constraint: [mahasiswa, semester]
+    - Max SKS default: 24 (dapat disesuaikan)
+    - Auto calculate total_sks saat add/remove
+end note
+
+note right of EnrollmentSys
+    Enrollment Creation Process:
+    Setelah KRS approved, sistem otomatis:
+    1. Create Enrollment record untuk setiap course
+    2. Set status = 'ENROLLED'
+    3. Update course.current_students
+    4. Link dengan semester yang sesuai
+    
+    Enrollment digunakan untuk:
+    - Tracking kehadiran mahasiswa
+    - Input nilai oleh dosen
+    - Generate transkrip
+    - Perhitungan IPK
+end note
+
+@enduml
