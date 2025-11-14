@@ -1,0 +1,100 @@
+@startuml
+title Use Case Diagram - Academic System SIAKAD
+left to right direction
+
+' ============ ACTORS ============
+actor Mahasiswa
+actor Dosen
+actor "Admin Akademik" as AdminAkademik
+
+' ============ SYSTEM BOUNDARY ============
+rectangle "Academic System SIAKAD" {
+    
+    ' ============ CORE USE CASES ============
+    usecase "Pendaftaran KRS" as UC1
+    usecase "Approve KRS" as UC2
+    usecase "Input Nilai" as UC3
+    usecase "Generate Transkrip" as UC4
+    
+    ' ============ SUPPORTING USE CASES ============
+    usecase "Lihat Mata Kuliah" as UC5
+    usecase "Tambah Mata Kuliah ke KRS" as UC6
+    usecase "Submit KRS" as UC7
+    usecase "Validasi KRS" as UC8
+    usecase "Lihat Nilai" as UC9
+    usecase "Hitung IPK" as UC10
+    usecase "Kelola Jadwal" as UC11
+    usecase "Generate Laporan Akademik" as UC12
+    usecase "Lihat Dashboard" as UC13
+    usecase "Kelola Data Mahasiswa" as UC14
+    usecase "Kelola Semester" as UC15
+    
+    ' ============ MAHASISWA RELATIONSHIPS ============
+    Mahasiswa --> UC1 : creates
+    Mahasiswa --> UC5 : views
+    Mahasiswa --> UC6 : adds courses
+    Mahasiswa --> UC7 : submits
+    Mahasiswa --> UC9 : views own
+    Mahasiswa --> UC4 : requests own
+    Mahasiswa --> UC13 : accesses
+    
+    ' ============ DOSEN RELATIONSHIPS ============
+    Dosen --> UC3 : inputs for courses
+    Dosen --> UC9 : views for assigned courses
+    Dosen --> UC11 : manages course schedules
+    Dosen --> UC13 : accesses
+    
+    ' ============ ADMIN AKADEMIK RELATIONSHIPS ============
+    AdminAkademik --> UC2 : approves/rejects
+    AdminAkademik --> UC8 : validates
+    AdminAkademik --> UC4 : generates for any student
+    AdminAkademik --> UC10 : calculates
+    AdminAkademik --> UC12 : generates reports
+    AdminAkademik --> UC13 : accesses
+    AdminAkademik --> UC14 : manages
+    AdminAkademik --> UC15 : manages
+    AdminAkademik --> UC11 : manages all schedules
+    AdminAkademik --> UC5 : manages courses
+    
+    ' ============ INCLUDE RELATIONSHIPS ============
+    UC1 ..> UC5 : <<include>>
+    UC1 ..> UC6 : <<include>>
+    UC2 ..> UC8 : <<include>>
+    UC4 ..> UC10 : <<include>>
+    UC10 ..> UC9 : <<include>>
+    UC7 ..> UC8 : <<include>>
+    
+    ' ============ EXTEND RELATIONSHIPS ============
+    UC6 ..> UC8 : <<extend>>
+    UC12 ..> UC4 : <<extend>>
+    UC3 ..> UC10 : <<extend>>
+    
+}
+
+note right of UC1
+  Mahasiswa dapat membuat KRS baru
+  pada periode yang ditentukan
+  dengan memilih mata kuliah
+  yang tersedia
+end note
+
+note right of UC2
+  Admin Akademik dapat menyetujui
+  atau menolak KRS yang telah
+  disubmit oleh mahasiswa
+end note
+
+note right of UC3
+  Dosen dapat menginput nilai
+  untuk mata kuliah yang diampu
+  berdasarkan enrollment mahasiswa
+end note
+
+note right of UC4
+  Sistem dapat generate transkrip
+  berdasarkan nilai yang telah
+  diinput dan enrollment yang
+  completed
+end note
+
+@enduml
