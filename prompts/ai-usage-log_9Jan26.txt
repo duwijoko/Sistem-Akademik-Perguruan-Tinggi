@@ -258,3 +258,98 @@ Buat view untuk melihat riwayat perubahan nilai per mahasiswa.
 
 
 
+Modul SPP (13 Januari 2026)
+apakah anda dapat buatkan modul SPP dengan deskripsi seperti berikut ?: 
+
+Sistem manajemen pembayaran SPP dengan status tunggakan, reminder otomatis, dan integrasi payment gateway (simulasi). AI membantu generate laporan keuangan.
+
+1. Payment Schema 
+Tabel:
+billing
+payment
+payment_method
+Status pembayaran:
+unpaid
+partial
+paid
+overdue
+
+2. Billing Service 
+Generate tagihan SPP per semester
+Record pembayaran (manual / otomatis via webhook)
+Calculate denda keterlambatan
+Block KRS jika ada tunggakan
+
+3. Dashboard Keuangan
+Per mahasiswa:
+Total tagihan
+Sudah bayar
+Sisa pembayaran
+Per program studi:
+Collection rate
+Grafik pembayaran per bulan
+
+4. Payment Webhook Simulation
+Endpoint untuk menerima notifikasi payment dari “gateway”
+Update status billing dari unpaid → paid
+Send receipt via email
+
+5. AI Financial Report
+
+Langkah pertama pembuatan Billing Generator
+Buat service generate_billing yang:
+Setiap awal semester, create billing untuk semua mahasiswa aktif
+Amount berdasarkan program studi:
+Teknik: 5 juta
+Ekonomi: 4 juta
+Due date: 2 minggu setelah semester dimulai
+Status awal billing: unpaid
+Buat cron job menggunakan APScheduler yang berjalan otomatis setiap semester.
+
+Step 2: Payment Processing
+Prompt AI
+Implementasikan payment workflow:
+process_payment(billing_id, amount, method):
+Jika amount < billing.total → status partial
+Jika amount >= billing.total → status paid
+Create payment record
+Update billing
+handle_webhook(payload):
+Verify signature (security)
+Extract data:
+transaction_id
+amount
+status
+Call process_payment
+Return 200 OK
+Gunakan transaction database untuk menjaga atomicity.
+
+
+
+Step 3: AI Financial Insights
+Analisis data pembayaran dan generate insight keuangan.
+Input:
+payment_data (CSV) dengan kolom:
+nim
+jumlah
+tanggal
+status
+Output laporan ringkas:
+Total revenue bulan ini: Rp X
+Collection rate: Y% mahasiswa sudah bayar
+Top 10 mahasiswa dengan tunggakan terbesar
+Rekomendasi:
+“Kirim reminder ke Z mahasiswa dengan tunggakan > 2 bulan”
+Format output:
+JSON untuk dashboard frontend
+
+
+
+dari Modul SPP yang baru saja kita buat, 
+saya memiliki Kriteria sukses untuk modul ini, berikut adalah point-point yang saya masksud.
+1. Billing ter-generate otomatis tiap semester
+2. Webhook payment berfungsi (test dengan curl)
+3. Dashboard menampilkan data real-time
+4. Mahasiswa dengan tunggakan tidak bisa mengisi KRS
+
+pastika modul SPP yang kita buat, memenuhi kriteria sukses yang saya tentukan.
