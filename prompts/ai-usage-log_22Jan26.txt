@@ -1,0 +1,423 @@
+Prompt yang dijalankan dan akan di upload 
+1. Prompt Class Diagram (Gemini)
+
+Anda adalah arsitek sistem berpengalaman. Buat Class diagram UML untu sistem akademik perguruan tinggi dengan komponen berikut :
+1. PMB Proses pendaftaran dan seleksi calon mahasiswa
+2. KRS (Kartu Rencana Studi) Fitur bagi mahasiswa untuk memilih mata kuliah di setiap semester.
+3. User sebagai base class (Mahasiswa, Dosen, Admin, Calon Mahasiswa)
+4. Course degnan atribut kode, nama, SKS, prasyarat
+5. Enrollment yanng hubungkan Mahasiswa dan Course
+6. Schedule dengan hari, jam, ruangan
+7. Grade Untuk Nilai mahasiswa. 
+
+Terapkan prinsip SOLID. dan gunakan Composition untuk relasi kuat dan aggregation untuk relasi lemah, output dalam format https://www.plantuml.com/plantuml/uml/SyfFKj2rKt3CoKnELR1Io4ZDoSa700001
+
+Validasi Diagram 
+(Uload Image Diagram di Prompt)
+Jadikan file terlampir sebagai satu-satunya sumber untuk dilakukan pengecekcekan apakah inheritance masuk akal
+Pastikan tidak ada circular dependency pada diagram tersebut,
+Verifikasi kardinalitas relasi (1-to-many, many-to-many) pastikan dengan baik.
+
+
+2. Prompt Use Case Diagram
+
+"sebagai arsitek sistem yang berpengalaman, Buatkan use case diagram untuk sistem akademik perguruan tinggi dengan aktor: Mahasiswa, Dosen, Admin Akademik.
+Use case utama: pendaftaran KRS, approve KRS, input nilai, generate transkrip. Tandai relasi include/extend jika ada." yang dapat di baca oleh https://editor.plantuml.com/
+
+Compare
+(Upload File)
+Sebagai arsitek sistem yang berpengalaman, tolong compare use case diagram tersebut dengan standart yang umum digunakan dalam dunia akademik.
+berikan penjelasan yang jelas dan detail jika harus ada yang dirubah dari diagram tersebut,
+dan buatkan juga code diagram tersebut yang kompatibel dengan https://editor.plantuml.com/
+
+Refactor
+(upload File UseCase Diagram)
+Sebagai arsitek sistem yang berpengalaman, lakukan Refactor class yang terlalu "god object" dari  use case diagram tersebut bertujuan menjadi bagian yang lebih spesifik, kode menjadi lebih bersih, modular dan mudah dikelola.
+berikan penjelasan yang jelas dan detail jika harus ada yang dirubah dari diagram tersebut,
+dan buatkan juga code diagram tersebut yang kompatibel dengan https://editor.plantuml.com/
+
+
+3. Prompt Sequeance Diagram
+Sebagai arsitek sistem yang berpengalaman dan detail, Buat sequence diagram untuk proses validasi KRS:
+Mahasiswa submit KRS
+Sistem cek prasyarat mata kuliah
+Sistem cek batas SKS (max 24)
+Sistem cek jadwal bentrok
+Jika lulus validasi, status KRS jadi 'Pending Approval'
+masukan juga error handling pada diagram.
+dan masukan semua kegiatan kedalam database (Update)
+Notifikasi dikirim ke Dosen Pengampu Gunakan format PlantUML yang dapat dideteksi di https://editor.plantuml.com/.
+
+Compare Sequence diagram 
+(Upload File Diagram)
+Sebagai arsitek sistem yang berpengalaman, tolong compare sequence diagram tersebut dengan standart yang umum digunakan dalam dunia akademik.
+berikan penjelasan yang jelas dan detail jika harus ada yang dirubah dari diagram tersebut,
+dan buatkan juga code diagram tersebut yang kompatibel dengan https://editor.plantuml.com/
+
+Refactor
+(Upload File Diagram)
+Sebagai arsitek sistem yang berpengalaman, lakukan Refactor class yang terlalu "god object" dari  sequence diagram tersebut bertujuan menjadi bagian yang lebih spesifik, kode menjadi lebih bersih, modular dan mudah dikelola.
+berikan penjelasan yang jelas dan detail jika harus ada yang dirubah dari diagram tersebut,
+dan buatkan juga code diagram tersebut yang kompatibel dengan https://editor.plantuml.com/
+
+
+Part 2,
+MODUL PMB
+
+Step 1
+
+Form Pendaftaran Mahasiswa baru sepertinya belum tersedia.
+sebagai Arsitek Sistem yang sangat berpengalaman, buatkan form PMB dengan desain yang cocok dengan skema database seperti berikut :
+Tabel calon_mahasiswa: id, nama_lengkap, email (unique), phone, tanggal_lahir, alamat, program_studi_id, jalur_masuk (SNBP/SNBT/Mandiri), status (pending/approved/rejected), created_at, approved_at.
+
+Tabel program_studi: id, kode (3 char), nama, fakultas.
+
+Buat SQLAlchemy model + Alembic migration script.
+Tambahkan constraint phone format Indonesia dan email validation.
+
+penambahan desain dan fitur ini, pastikan tidak merubah IP dashboard http://127.0.0.1:8000/ dan juga desain dashboard."
+
+
+(Upload halaman Admin)
+ada tampilan Dashboard Admin,
+di bawah "Quick Action", buatkan  Grid View untuk menampilkan data calon mahasiswa dari fitur Penerimaan Mahasiswa Baru (PMB), tanpa harus merubah desain pada menu atau halaman lain.
+
+
+Step 2
+"
+Untuk meningkatkan keamanan, konsisten dan kemududahan dalam pengelolahan data,
+Buat FastAPI endpoint untuk proses Penerimaan Mahasiswa Baru (PMB), dengan rincian seperti berikut:
+POST /register: terima JSON calon mahasiswa, validasi input, simpan dengan status 'pending'
+PUT /approve/{id}: ubah status jadi 'approved', generate NIM format [tahun][kode_prodi][sequential], return NIM
+GET /status/{id}: return data pendaftar + status
+Sertakan error handling (404, 400, 409 conflict).
+Buat dependency injection untuk DB session."
+
+##Update Prompt untuk API PMB (8 November 2025)
+sebagai role admin_siakad, Fitur "Penerimaan Mahasiswa Baru" di button "Kelolah PMB" masih terlihat Error terlampir.
+Sebagai arsitek sistem yang sudah sangat berpengalaman, buatkan tampilan yang sesuai dengan data dari output Form Penerimaan Mahasiswa Baru (PMB) seperti Grid View, dengan fitur tambahan "Approved" atau "Reject" yang hanya bisa dilakukan oleh role akun admin_siakad. Kemudian tambahkan FastAPI endpoint untuk proses Penerimaan Mahasiswa Baru (PMB) dimana tampilan form sudah tersedia dan sudah berjalan dengan baik, jangan sampai merubah design form Penerimaan Mahasiswa Baru yang sudah berjalan dengan baik di sistem ini, dengan rincian seperti berikut:
+POST /register: terima JSON calon mahasiswa, validasi input, simpan dengan status 'pending'
+PUT /approve/{id}: ubah status jadi 'approved', generate NIM format [tahun][kode_prodi][sequential], return NIM
+GET /status/{id}: return data pendaftar + status
+Sertakan error handling (404, 400, 409 conflict).
+Buat dependency injection untuk DB session."
+Dan pastikan fitur tambahan ini tidak merubah design fitur yang sudah ada seperti tampilan home utama, Login Role Admin_siakad, Form Penerimaan Mahasiswa Baru (PMB) dan paling utama tidka merubah IP dan port http://127.0.0.1:8000/.
+
+##PromptUntuk Integrate FastAPI+Django ((8 November 2025)
+Untuk menjalankan FastAPI dan Django diwaktu yang bersamaan di mode development saat running command python manage.py runserver 127.0.0.1:8000 dengan tujuan fitur FastAPI berjalan di Form Penerimaan Mahasiswa Baru (PMB), sebagai arsitek Sistem berpengalaman tambahkan ASGI configuration untuk menjalankan keduanya dalam satu server (django dan FastAPI), tanpa merubah fitur design yang sudah ada dan berjalan.
+
+Step 3 ((6 November 2025)
+Sebagai Arsitek sistem yang berpengalaman, dengan tujuan menghasilkan data yang baik, buatkan function generate_nim yang thread-safe"
+def generate_nim(tahun: int, kode_prodi: str, db: Session) -> str:
+    """
+    Generate NIM format: YYYY[KODE]XXXX  
+    Example: 2025001-0001
+
+    dan pastikan penambahan fitur ini tidak merubah desain dashboard dan Form PMB serta IP dan port yang sudah paten
+	
+	
+Step 4: Testing Strategy
+
+"untuk memastikan semua fitur berjalan dengan baik dan tidak ada perubaha yang tidak diketahui, Sebagai arsitek sistem yang sudah berpengalaman, lakukan testing dengan Generate pytest untuk modul PMB:
+test_register_success: data valid, return 201
+test_register_duplicate_email: return 409 conflict
+test_approve_generate_nim: NIM sesuai format dan sequential
+test_approve_idempotent: approve 2x tidak generate NIM baru
+test_invalid_phone_format: return 400
+Gunakan pytest fixtures untuk setup database."
+
+#Minggu 7-8 : Modul Jadwal & Ruangan
+
+Perhatikan prompt berikut : (13 Desember 2025
+
+Prompt: "Tulis function detect_schedule_conflict yang:
+Input: list jadwal (hari, jam_mulai, jam_selesai, ruangan, dosen)
+Output: list of conflict dengan detail:
+Type: 'room_conflict', 'lecturer_conflict', 'time_overlap'
+Affected schedules: [schedule_1, schedule_2]
+Algorithm: untuk setiap pair jadwal, cek:
+Hari sama AND jam overlap AND ruangan sama $\to$ room conflict
+Hari sama AND jam overlap AND dosen sama $\to$ lecturer conflict
+Optimasi: Optimize dengan interval tree untuk jam overlap check.
+
+apakah bisa anda lakukan analisa terhadap prompt diatas dengan file-file modul Jadwal dan Ruangan yang dimiliki saat ini oleh siakad, dan lakukan modifikasi terhadap code yang ada, jika memang belum ada modul tersebut, langsung saja dibuatkan dan di integrasikan terhadap Jadwal dan Ruangan pada siakad,
+
+pastikan implemenatsi prompt di atas, tidak berdampak terhadap fitur lain yang saat ini sudah berjalan baik, jika memang prompt tersebut ber-irisan dengan fitur lain,, langsung saja lakukan penyesuain, tanpa mengurangi fungsi pada fitur yang menyebabkan error pada system saat dilakukan UAT.
+
+
+Step 2: Observer Pattern Implementation (15 Desember 2025)
+Code :
+Observer Pattern Implementation
+untuk notifikasi jadwal:
+Publisher
+class ScheduleSubject:
+def attach(observer)
+def detach(observer)
+def notify(event_type, schedule_data)
+Observers
+class StudentObserver:
+def update(event) $\to$ send email ke mahasiswa terdampak
+class LecturerObserver:
+def update(event) $\to$ notify dosen
+Saat jadwal berubah, panggil subject.notify('SCHEDULE_CHANGED', data)
+
+bisakah lakukan analisa dan investigasi terhadap prompt dan code di atas,?
+apakah ada kemungkinan code di atas akan bersinggungan atau bahkan meng-update modul-modul yang sudah ada dan sudah berjalan dengan baik.?
+
+apakah siakad sudah memiliki code tersebut pada modul jadwal, atau modul lain yang ?
+
+jangan lakukan implementasi code di atas sebelum ada analisa detail dan instruksi lanjutan.
+
+
+Step 3 : Al-Powered Rescheduling (2 Januari 2026)
+Tolong lakukan pengecekan pada sistem siakad saat ini, apakah sudah ada fitur atau modul atau fungsi "AI-Powered Rescheduling
+
+Kita akan implementasikan "Al-Powered Rescheduling"
+Dengan Prompt: "Anda adalah scheduling assistant. 
+Diberikan: (Sample data)
+Jadwal bentrok: Kalkulus I (Senin 08:00, Ruang A101, 40 mhs)
+Available slots: (hari, jam, ruangan, kapasitas)
+Rekomendasikan 3 alternatif jadwal yang:
+1. Ruangan kapasitasnya cukup
+2. Tidak bentrok dengan jadwal dosen
+3. Minimal disruption untuk mahasiswa (prioritas pagi/siang)
+Output format JSON: [{hari, jam, ruangan, reason}, ...]"
+
+pastikan fitur ini tidak tumpang tindih dengan fitur AI yang sudah ada.
+
+sebelum kita lanjutkan untuk penambahan fitur lain,, (5 Januari 2026)
+kita lakukan check list pada perkejaan yang baru kita selesaikan :
+
+Kriteria Sukses
+[ ] Sistem deteksi semua jenis bentrok
+[ ] Notifikasi terkirim saat jadwal berubah (cek log)
+[ ] Sequence diagram Observer pattern tersedia
+[ ] Admin mendapat saran jadwal alternatif dari Al
+
+
+#Modul Nilai & Transkrip#
+
+
+pada system siakad kita, apakah sudah ada modul Nilai dan Transkrip? (8 Januari 2025)
+
+apakah bisa ditambahkan logic berikut :
+Step 1 : GPA Calculation
+Implementasikan fungsi calculate_ipk dengan aturan:
+IPK = Σ(SKS × Nilai Angka) / Σ(SKS)
+Hanya hitung mata kuliah yang sudah lulus (nilai ≥ D)
+Jika mata kuliah diulang, ambil nilai tertinggi
+Handle edge case:
+Mahasiswa semester 1 belum ada nilai → return 0.0
+
+pada modul Nilai dan Transkrip Siakad yang sudah ada saat ini?
+
+Step 2 : lanjutkan dengan fitur PDF Generation, 
+PDF Generation
+Generate transkrip PDF menggunakan ReportLab atau WeasyPrint.
+Layout:
+Header:
+Logo universitas
+Judul: “TRANSKRIP AKADEMIK”
+Biodata:
+NIM
+Nama
+Program Studi
+Angkatan
+Per semester:
+Tabel dengan kolom:
+Kode MK
+Nama MK
+SKS
+Nilai
+Mutu
+Footer:
+Total SKS
+IPK
+Predikat kelulusan
+Tanda tangan Dekan
+Buat template HTML yang dapat diisi data dinamis.
+Gunakan CSS profesional (mirip ijazah atau dokumen resmi akademik).
+
+tolong buat fitur Audit Trial dengan ketentuan sebagai berikut :
+
+Step 3 : Audit Trail (9 Jan 2025)
+Desain tabel grade_history untuk melacak perubahan nilai.
+Kolom:
+id
+grade_id
+old_value
+new_value
+changed_by
+changed_at
+reason
+
+Trigger audit:
+Setiap UPDATE pada tabel grades
+Otomatis insert record ke tabel grade_history
+Buat view untuk melihat riwayat perubahan nilai per mahasiswa.
+
+
+
+Modul SPP (13 Januari 2026)
+apakah anda dapat buatkan modul SPP dengan deskripsi seperti berikut ?: 
+
+Sistem manajemen pembayaran SPP dengan status tunggakan, reminder otomatis, dan integrasi payment gateway (simulasi). AI membantu generate laporan keuangan.
+
+1. Payment Schema 
+Tabel:
+billing
+payment
+payment_method
+Status pembayaran:
+unpaid
+partial
+paid
+overdue
+
+2. Billing Service 
+Generate tagihan SPP per semester
+Record pembayaran (manual / otomatis via webhook)
+Calculate denda keterlambatan
+Block KRS jika ada tunggakan
+
+3. Dashboard Keuangan
+Per mahasiswa:
+Total tagihan
+Sudah bayar
+Sisa pembayaran
+Per program studi:
+Collection rate
+Grafik pembayaran per bulan
+
+4. Payment Webhook Simulation
+Endpoint untuk menerima notifikasi payment dari “gateway”
+Update status billing dari unpaid → paid
+Send receipt via email
+
+5. AI Financial Report
+
+Langkah pertama pembuatan Billing Generator
+Buat service generate_billing yang:
+Setiap awal semester, create billing untuk semua mahasiswa aktif
+Amount berdasarkan program studi:
+Teknik: 5 juta
+Ekonomi: 4 juta
+Due date: 2 minggu setelah semester dimulai
+Status awal billing: unpaid
+Buat cron job menggunakan APScheduler yang berjalan otomatis setiap semester.
+
+Step 2: Payment Processing
+Prompt AI
+Implementasikan payment workflow:
+process_payment(billing_id, amount, method):
+Jika amount < billing.total → status partial
+Jika amount >= billing.total → status paid
+Create payment record
+Update billing
+handle_webhook(payload):
+Verify signature (security)
+Extract data:
+transaction_id
+amount
+status
+Call process_payment
+Return 200 OK
+Gunakan transaction database untuk menjaga atomicity.
+
+
+
+Step 3: AI Financial Insights
+Analisis data pembayaran dan generate insight keuangan.
+Input:
+payment_data (CSV) dengan kolom:
+nim
+jumlah
+tanggal
+status
+Output laporan ringkas:
+Total revenue bulan ini: Rp X
+Collection rate: Y% mahasiswa sudah bayar
+Top 10 mahasiswa dengan tunggakan terbesar
+Rekomendasi:
+“Kirim reminder ke Z mahasiswa dengan tunggakan > 2 bulan”
+Format output:
+JSON untuk dashboard frontend
+
+
+dari Modul SPP yang baru saja kita buat, 
+saya memiliki Kriteria sukses untuk modul ini, berikut adalah point-point yang saya masksud.
+1. Billing ter-generate otomatis tiap semester
+2. Webhook payment berfungsi (test dengan curl)
+3. Dashboard menampilkan data real-time
+4. Mahasiswa dengan tunggakan tidak bisa mengisi KRS
+
+pastika modul SPP yang kita buat, memenuhi kriteria sukses yang saya tentukan.
+
+
+Modul Presensi (QR Code) 27 Januari 2026
+Langah 1, kita akan membuat QR Generation dengan prompt ini.
+
+import qrcode
+import jwt
+from datetime import datetime, timedelta
+
+def generate_attendance_qr(schedule_id, valid_minutes=15):
+    # Payload: schedule_id, generated_at, expires_at
+    payload = {
+        'schedule_id': schedule_id,
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() + timedelta(minutes=valid_minutes)
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
+    # Generate QR from token
+    qr = qrcode.make(token)
+    return qr, token
+
+Buat endpoint:
+GET /attendance/qr/{schedule_id}
+
+Endpoint ini mengembalikan QR Code dalam bentuk image.
+
+Langkah 2, 
+Buat endpoint:
+POST /attendance/scan
+
+Input:
+{
+  "token": "jwt_from_qr",
+  "nim": "xxx"
+}
+
+Validasi yang dilakukan sistem:
+Decode JWT → ambil schedule_id dan cek masa berlaku (exp)
+Query jadwal: apakah hari ini ada perkuliahan?
+Cek enrollment: apakah mahasiswa terdaftar pada mata kuliah tersebut?
+Cek duplikasi: apakah mahasiswa sudah melakukan scan sebelumnya?
+Tentukan status kehadiran:
+Hadir → scan dalam 15 menit pertama
+Terlambat → scan setelah 15 menit (maksimal 30 menit)
+Response:
+{
+  "success": true,
+  "status": "hadir",
+  "message": "..."
+}
+
+Langkah 3  AI Attendance Analyzer
+Analisis data presensi untuk menemukan pola kehadiran.
+Input:
+attendance_records (array JSON)
+Task yang dilakukan AI:
+Menghitung persentase kehadiran per mahasiswa
+Mengidentifikasi mahasiswa dengan presensi < 75% (warning)
+Mendeteksi pola:
+Hari atau jam dengan tingkat ketidakhadiran tinggi
+Menghasilkan rekomendasi, contoh:
+“Mahasiswa X sering absen Senin pagi → hubungi untuk konseling”
+“Kelas Y pada jam 07:00 memiliki tingkat absen 40% → pertimbangkan penjadwalan ulang”
+Output:
+Structured JSON berisi insights dan recommended actions
+
+
+
